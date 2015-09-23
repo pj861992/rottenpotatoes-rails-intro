@@ -11,11 +11,56 @@ class MoviesController < ApplicationController
   end
 
   def index
+    @all_ratings = Movie.ratings
+
     @movies = Movie.order(params[:sort])
     if params[:sort_by] == 'title'
       @title_header = 'hilite'
     elsif params[:sort_by] == 'release_date'
       @release_header ='hilite'
+    end
+
+    redirect = false
+
+    @category = nil
+    if params.has_key?(:category)
+      @category = params[:category]
+    elsif session.has_key?(:category)
+      @category = session[:category]
+      redirect = true
+    end
+
+    @sort = nil
+    if params.has_key?(:sort)
+      @sort = params[:sort]
+    elsif session.has_key?(:sort)
+      @sort = session[:sort]
+      redirect = true
+    end
+
+    @ratings =  {"G" => "1", "PG" => "1", "PG-13" => "1", "R" => "1"}
+    if params.has_key?(:ratings)
+      @ratings = params[:ratings]
+    elsif session.has_key?(:ratings)
+      @ratings = session[:ratings]
+      redirect = true
+    end
+
+    @movies = Movie.where("rating in (?)", @ratings.keys)
+    @movies = @movies.order(params[:sort])
+    session[:ratings] = @ratings
+
+    if @category and @sort
+      @movies = @movies.find(:all, :order => "#{@category} #{@sort}")
+      #@movies = @mivies.order(params[:sort])
+      session[:category] = @category
+      session[:sort] = @sort
+      session[:sort_by] = @sort_by
+    end
+
+    if redirect
+      flash.keep
+      redirect_to movies_path({:category => @category, :sort => @sort, :ratings => @ratings, :sort_by => @sort_by})
     end
   end
 
